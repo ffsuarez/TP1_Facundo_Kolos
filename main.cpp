@@ -3,30 +3,36 @@
 #include "arm_book_lib.h"
 
 //===[Declaration and initialization of public global objects]===
-AnalogIn sensorLDR(A0);
-DigitalIn pushButton(D0);
-DigitalOut focoDesk(D1);
-DigitalOut lockSignal(D2,ON);
+AnalogIn sensorLDR(PA_0);
+DigitalIn pushButton(D2);
+DigitalOut focoDesk(D3);
+DigitalOut lockSignal(D4,ON);
 class Lockhandle {
     private:
-        bool time1, time2;
+        bool time1;
+        bool time2;
     public:
         void update(){
             time1 = pushButton.read();
             wait_ms(100);//ms
             time2 = pushButton.read();
             if(time1 == time2){
-                lockSignal = OFF;
+                if(time1==OFF){
+                    lockSignal = ON;
+                }
+                else{
+                    lockSignal = OFF;
+                }
             }
             else{
-                lockSignal = ON;
+                lockSignal = OFF;
             }            
         }
 };
 Lockhandle cerradura;
 //===[Declaration and Initialization of public global variables]===
-const int umbral = 100;
-int lecturaLDR = 0;
+int umbral = 100;
+int lecturaLDR;
 //===[Declaration and Initialization of public functions]===
 void inputsInit();
 void outputsInit();
@@ -37,6 +43,7 @@ int main(){
     
     inputsInit();
     outputsInit();
+    umbral= sensorLDR.read();
     while(true){
         sensorLEDUpdate();
         cerradura.update();
@@ -50,16 +57,16 @@ void inputsInit(){
 
 void outputsInit(){
     focoDesk = OFF;
-    lockSignal = ON;
+    lockSignal = OFF;
 }
 
 void sensorLEDUpdate(){
     lecturaLDR = sensorLDR.read();
-    if(lecturaLDR > umbral){
-        focoDesk = ON;
+    if(lecturaLDR < umbral){
+        focoDesk = OFF;
     }
     else{
-        focoDesk = OFF;
+        focoDesk = ON;
     }
 }
 
