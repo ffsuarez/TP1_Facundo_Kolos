@@ -28,7 +28,6 @@ NUCLEO F030R8
 El repositorio contendrá:
 - Código fuente para el microcontrolador NUCLEO F030R8.
 - Diagramas de conexión y esquemáticos.
-- Documentación adicional como manuales y especificaciones técnicas.
 
 ### Notas Adicionales
 Recientemente, he experimentado dificultades al intentar cargar el programa de ejemplo del curso en mi NUCLEO-F030R8. 
