@@ -36,5 +36,7 @@ Utilizando MBed OS 2 (la versión compatible con mi placa), intenté compilar "m
 pero no se cargó en la placa. Aparece un mensaje que indica "PDSC file not found. Flash Failed".
 Dicho problema no pudo resolverse, por lo que se optó continuar cargando el binario de forma directa.
 
+Se adjunta un video que presenta el sistema implementado: [TP1_Facundo_Kolos_Video](https://drive.google.com/file/d/13Nv7huQAf9bDUuC0U8NHK5C0Y3yKhaRW/view?usp=drive_link)
+
 ---
 
