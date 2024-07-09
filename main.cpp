@@ -31,8 +31,8 @@ class Lockhandle {
 };
 Lockhandle cerradura;
 //===[Declaration and Initialization of public global variables]===
-int umbral = 100;
-int lecturaLDR;
+float umbral= 0.5;
+float lecturaLDR;
 //===[Declaration and Initialization of public functions]===
 void inputsInit();
 void outputsInit();
