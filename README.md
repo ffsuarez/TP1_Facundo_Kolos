@@ -3,6 +3,7 @@
 ## Trabajo Práctico N°1: Iluminación y Acceso Controlado
 
 - **Alumno:** Facundo Kolos
+- **Email:** fmartinks@gmail.com
 
 ### Objetivo
 Desarrollar un sistema que permita iluminar un escritorio según la intensidad de luz detectada por un sensor LDR. Además, incorporar un pulsador para accionar una cerradura eléctrica que permite el acceso a una oficina.
