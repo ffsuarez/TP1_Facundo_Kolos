@@ -30,6 +30,7 @@ class Lockhandle {
         }
 };
 Lockhandle cerradura;
+Serial uartUsb(USBTX,USBRX,115200);
 //===[Declaration and Initialization of public global variables]===
 float umbral= 0.5;
 float lecturaLDR;
@@ -37,7 +38,8 @@ float lecturaLDR;
 void inputsInit();
 void outputsInit();
 void sensorLEDUpdate();
-
+void uartTask();
+void availableCommands();
 //==[Main function]===
 int main(){
     
@@ -47,6 +49,7 @@ int main(){
     while(true){
         sensorLEDUpdate();
         cerradura.update();
+        uartTask();
     }
     return(0); 
 }
@@ -67,6 +70,27 @@ void sensorLEDUpdate(){
     }
     else{
         focoDesk = ON;
+        uartUsb.printf("Sensor value: %f\r\n", lecturaLDR);
+
     }
 }
 
+void uartTask(){
+    char receivedChar = '\0';
+    if(uartUsb.readable()){
+        receivedChar=uartUsb.getc();
+        if(receivedChar=='1'){
+            uartUsb.printf("focoDesk ON\r\n");
+            focoDesk=ON;
+            wait_ms(200);
+        }
+        else{
+            availableCommands();
+        }
+    }
+}
+
+void availableCommands(){
+    uartUsb.printf("Available commands1:\r\n");
+    uartUsb.printf("Press '1' to turn ON the light\r\n");
+}
