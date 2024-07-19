@@ -4,7 +4,7 @@
 //===[Definitions]===
 #define KEYPAD_NUMBER_OF_ROWS 4
 #define KEYPAD_NUMBER_OF_COLS 4
-#define DEBOUNCE_BUTTON_TIME_MS 40
+#define DEBOUNCE_BUTTON_TIME_MS 80
 #define TIME_INCREMENT_MS 10
 //===[Declaration of public data types]===
 typedef enum{
@@ -92,6 +92,7 @@ int main(){
 //===[Implementation of public functions]===
 void inputsInit(){
     pushButton.mode(PullUp);
+    matrixKeypadInit();
 }
 
 void outputsInit(){
@@ -114,9 +115,9 @@ void sensorLEDUpdate(){
 void uartTask() {
     char receivedUartChar = '\0';
     char str[100];
+    char matrixChar = '\0';
     if (uartUsb.readable()) {
         receivedUartChar = uartUsb.getc();
-
         switch (receivedUartChar) {
             case '1':
                 uartUsb.printf("focoDesk ON\r\n");
@@ -126,45 +127,87 @@ void uartTask() {
             case 's':
             case 'S':
                 struct tm rtcTime;
-                int strIndex;
-                uartUsb.printf("Configuracion RTC(Insertar Año[YYYY])\r\n");
-                for( strIndex=0; strIndex<3; strIndex++ ) {
-                    str[strIndex]=uartUsb.getc();
+                int strIndex = 0;
+                uartUsb.printf("Configuracion RTC(Insertar [YYYY])\r\n");
+                while(strIndex<4){
+                    matrixChar=matrixKeypadUpdate();
+                    if(matrixChar!='\0'){
+                        str[strIndex]=matrixChar;
+                        uartUsb.printf("%c",str[strIndex]);
+                        matrixChar = '\0';
+                        strIndex++;
+                    }
                 }
+                strIndex = 0;
                 str[4] = '\0';
                 rtcTime.tm_year = atoi(str) - 1900;                 
                 uartUsb.printf("Configuracion RTC(Insertar Mes[MM])\r\n");
-                for( strIndex=0; strIndex<2; strIndex++ ) {
-                    str[strIndex]=uartUsb.getc();
+                while(strIndex<2){
+                    matrixChar=matrixKeypadUpdate();
+                    if(matrixChar!='\0'){
+                        str[strIndex]=matrixChar;
+                        uartUsb.printf("%c",str[strIndex]);
+                        matrixChar = '\0';
+                        strIndex++;
+                    }
                 }
+                strIndex = 0;
                 str[2] = '\0';
                 rtcTime.tm_mon = atoi(str) - 1; 
                 uartUsb.printf("Configuracion RTC(Insertar Dia[DD])\r\n");
-                for( strIndex=0; strIndex<2; strIndex++ ) {
-                    str[strIndex]=uartUsb.getc();
+                while(strIndex<2){
+                    matrixChar=matrixKeypadUpdate();
+                    if(matrixChar!='\0'){
+                        str[strIndex]=matrixChar;
+                        uartUsb.printf("%c",str[strIndex]);
+                        matrixChar = '\0';
+                        strIndex++;
+                    }
                 }
+                strIndex = 0;
                 str[2] = '\0';
                 rtcTime.tm_mday = atoi(str);
                 uartUsb.printf("Configuracion RTC(Insertar Hora[hh])\r\n");
-                for( strIndex=0; strIndex<2; strIndex++ ) {
-                    str[strIndex]=uartUsb.getc();
+                while(strIndex<2){
+                    matrixChar=matrixKeypadUpdate();
+                    if(matrixChar!='\0'){
+                        str[strIndex]=matrixChar;
+                        uartUsb.printf("%c",str[strIndex]);
+                        matrixChar = '\0';
+                        strIndex++;
+                    }
                 }
+                strIndex = 0;
                 str[2] = '\0';
                 rtcTime.tm_hour = atoi(str);
                 uartUsb.printf("Configuracion RTC(Insertar Mins[mm])\r\n");
-                for( strIndex=0; strIndex<2; strIndex++ ) {
-                    str[strIndex]=uartUsb.getc();
+                while(strIndex<2){
+                    matrixChar=matrixKeypadUpdate();
+                    if(matrixChar!='\0'){
+                        str[strIndex]=matrixChar;
+                        uartUsb.printf("%c",str[strIndex]);
+                        matrixChar = '\0';
+                        strIndex++;
+                    }
                 }
+                strIndex = 0;
                 str[2] = '\0';
                 rtcTime.tm_min = atoi(str);
                 uartUsb.printf("Configuracion RTC(Insertar Segs[ss])\r\n");
-                for( strIndex=0; strIndex<2; strIndex++ ) {
-                    str[strIndex]=uartUsb.getc();
+                while(strIndex<2){
+                    matrixChar=matrixKeypadUpdate();
+                    if(matrixChar!='\0'){
+                        str[strIndex]=matrixChar;
+                        uartUsb.printf("%c",str[strIndex]);
+                        matrixChar = '\0';
+                        strIndex++;
+                    }
                 }
+                strIndex = 0;
                 str[2] = '\0';
                 rtcTime.tm_sec = atoi(str);
-                rtcTime.tm_isdst = -1;
-                set_time( mktime( &rtcTime ) );                                            
+                //rtcTime.tm_isdst = -1;
+                set_time( mktime( &rtcTime ) );
             default:
                 availableCommands();
                 break;
@@ -175,6 +218,7 @@ void uartTask() {
 void availableCommands(){
     uartUsb.printf("Available commands1:\r\n");
     uartUsb.printf("Press '1' to turn ON the light\r\n");
+    uartUsb.printf("Press 'S' to configure RTC\r\n");
 }
 
 void matrixKeypadInit(){
@@ -183,7 +227,6 @@ void matrixKeypadInit(){
 		for( pinIndex=0; pinIndex<KEYPAD_NUMBER_OF_COLS; pinIndex++ ) {
 			(keypadColPins[pinIndex]).mode(PullUp);
 		}
-        printf("Inicializada matriz");
 }
 
 char matrixKeypadScan(){
@@ -197,7 +240,6 @@ char matrixKeypadScan(){
 		keypadRowPins[row] = OFF;
 		for( col=0; col<KEYPAD_NUMBER_OF_COLS; col++ ) {
 			if( keypadColPins[col] == OFF ) {
-                uartUsb.printf("%c",matrixKeypadIndexToCharArray[row*KEYPAD_NUMBER_OF_ROWS + col]);
 				return matrixKeypadIndexToCharArray[row*KEYPAD_NUMBER_OF_ROWS + col];
 			}
 		}
