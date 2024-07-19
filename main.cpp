@@ -111,17 +111,63 @@ void sensorLEDUpdate(){
     }
 }
 
-void uartTask(){
-    char receivedUartChar = '\0';    
-    if(uartUsb.readable()){
-        receivedUartChar=uartUsb.getc();
-        if(receivedUartChar=='1'){
-            uartUsb.printf("focoDesk ON\r\n");
-            focoDesk=ON;
-            wait_ms(200);
-        }
-        else{
-            availableCommands();
+void uartTask() {
+    char receivedUartChar = '\0';
+    char str[100];
+    if (uartUsb.readable()) {
+        receivedUartChar = uartUsb.getc();
+
+        switch (receivedUartChar) {
+            case '1':
+                uartUsb.printf("focoDesk ON\r\n");
+                focoDesk = ON;
+                wait_ms(200);
+                break;
+            case 's':
+            case 'S':
+                struct tm rtcTime;
+                int strIndex;
+                uartUsb.printf("Configuracion RTC(Insertar Año[YYYY])\r\n");
+                for( strIndex=0; strIndex<3; strIndex++ ) {
+                    str[strIndex]=uartUsb.getc();
+                }
+                str[4] = '\0';
+                rtcTime.tm_year = atoi(str) - 1900;                 
+                uartUsb.printf("Configuracion RTC(Insertar Mes[MM])\r\n");
+                for( strIndex=0; strIndex<2; strIndex++ ) {
+                    str[strIndex]=uartUsb.getc();
+                }
+                str[2] = '\0';
+                rtcTime.tm_mon = atoi(str) - 1; 
+                uartUsb.printf("Configuracion RTC(Insertar Dia[DD])\r\n");
+                for( strIndex=0; strIndex<2; strIndex++ ) {
+                    str[strIndex]=uartUsb.getc();
+                }
+                str[2] = '\0';
+                rtcTime.tm_mday = atoi(str);
+                uartUsb.printf("Configuracion RTC(Insertar Hora[hh])\r\n");
+                for( strIndex=0; strIndex<2; strIndex++ ) {
+                    str[strIndex]=uartUsb.getc();
+                }
+                str[2] = '\0';
+                rtcTime.tm_hour = atoi(str);
+                uartUsb.printf("Configuracion RTC(Insertar Mins[mm])\r\n");
+                for( strIndex=0; strIndex<2; strIndex++ ) {
+                    str[strIndex]=uartUsb.getc();
+                }
+                str[2] = '\0';
+                rtcTime.tm_min = atoi(str);
+                uartUsb.printf("Configuracion RTC(Insertar Segs[ss])\r\n");
+                for( strIndex=0; strIndex<2; strIndex++ ) {
+                    str[strIndex]=uartUsb.getc();
+                }
+                str[2] = '\0';
+                rtcTime.tm_sec = atoi(str);
+                rtcTime.tm_isdst = -1;
+                set_time( mktime( &rtcTime ) );                                            
+            default:
+                availableCommands();
+                break;
         }
     }
 }
