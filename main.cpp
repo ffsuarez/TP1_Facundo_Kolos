@@ -1,11 +1,13 @@
 //===[Libraries]===
 #include "mbed.h"
 #include "arm_book_lib.h"
+//#include <ctime>
+//#include "rtc_api.h"
 //===[Definitions]===
 #define KEYPAD_NUMBER_OF_ROWS 4
 #define KEYPAD_NUMBER_OF_COLS 4
-#define DEBOUNCE_BUTTON_TIME_MS 80
-#define TIME_INCREMENT_MS 10
+#define DEBOUNCE_BUTTON_TIME_MS 2000
+#define TIME_INCREMENT_MS 2
 //===[Declaration of public data types]===
 typedef enum{
 MATRIX_KEYPAD_SCANNING,
@@ -13,6 +15,17 @@ MATRIX_KEYPAD_DEBOUNCE,
 MATRIX_KEYPAD_KEY_HOLD_PRESSED
 } matrixKeypadState_t;
 
+typedef enum{
+    PUSHBTN_SCANNING,
+    PUSHBTN_DEBOUNCE,
+    PUSHBTN_HOLD_PRESSED
+} pushButtonState_t;
+
+typedef enum{
+    DOOR_OPEN,
+    DOOR_CLOSED,
+    DOOR_UNLOCKED
+} doorState_t;
 
 //===[Declaration and initialization of public global objects]===
 AnalogIn sensorLDR(PA_0);
@@ -20,28 +33,7 @@ DigitalIn pushButton(D2);
 DigitalOut focoDesk(D3);
 DigitalOut lockSignal(D4,ON);
 
-class Lockhandle {
-    private:
-        bool time1;
-        bool time2;
-    public:
-        void update(){
-            time1 = pushButton.read();
-            wait_ms(100);//ms
-            time2 = pushButton.read();
-            if(time1 == time2){
-                if(time1==OFF){
-                    lockSignal = ON;
-                }
-                else{
-                    lockSignal = OFF;
-                }
-            }
-            else{
-                lockSignal = OFF;
-            }            
-        }
-};
+
 
 Serial uartUsb(USBTX,USBRX,115200);
 
@@ -54,8 +46,9 @@ DigitalIn keypadColPins[KEYPAD_NUMBER_OF_COLS] =
 float umbral= 0.5;
 float lecturaLDR;
 char keyReleased;
-
+int pushButtonLastRead = 0;
 int accumulatedDebounceMatrixKeypadTime = 0;
+int accumulatedDebouncePushButtonTime = 0;
 char matrixKeypadLastKeyPressed = '\0';
 char matrixKeypadIndexToCharArray[] = {
 '1', '2', '3', 'A',
@@ -64,26 +57,33 @@ char matrixKeypadIndexToCharArray[] = {
 '*', '0', '#', 'D',
 };
 matrixKeypadState_t matrixKeypadState;
-Lockhandle cerradura;
+doorState_t doorState;
+pushButtonState_t pushButtonState;
+
 //===[Declaration and Initialization of public functions]===
 void inputsInit();
 void outputsInit();
 void sensorLEDUpdate();
 void uartTask();
 void availableCommands();
-
 void matrixKeypadInit();
 char matrixKeypadScan();
 char matrixKeypadUpdate();
+int pushButtonUpdate();
 //==[Main function]===
-int main(){
-    
+int main(){    
     inputsInit();
     outputsInit();
     matrixKeypadInit();
+    
     while(true){
         sensorLEDUpdate();
-        cerradura.update();
+        if(pushButtonUpdate()==1){
+            lockSignal = ON;
+        }
+        else{
+            lockSignal = OFF;
+        }
         matrixKeypadScan();
         uartTask();
     }
@@ -116,6 +116,7 @@ void uartTask() {
     char receivedUartChar = '\0';
     char str[100];
     char matrixChar = '\0';
+    time_t epochSeconds;
     if (uartUsb.readable()) {
         receivedUartChar = uartUsb.getc();
         switch (receivedUartChar) {
@@ -126,6 +127,7 @@ void uartTask() {
                 break;
             case 's':
             case 'S':
+                //rtc_init();
                 struct tm rtcTime;
                 int strIndex = 0;
                 uartUsb.printf("Configuracion RTC(Insertar [YYYY])\r\n");
@@ -206,8 +208,14 @@ void uartTask() {
                 strIndex = 0;
                 str[2] = '\0';
                 rtcTime.tm_sec = atoi(str);
-                //rtcTime.tm_isdst = -1;
-                set_time( mktime( &rtcTime ) );
+                set_time(mktime( &rtcTime ));
+                break;
+            case 't':
+            case 'T':
+                epochSeconds = time(NULL);
+                sprintf ( str, "Date and Time = %s", ctime(&epochSeconds));
+                uartUsb.printf("epochSeconds: %ld\n", epochSeconds);
+                break;
             default:
                 availableCommands();
                 break;
@@ -219,6 +227,7 @@ void availableCommands(){
     uartUsb.printf("Available commands1:\r\n");
     uartUsb.printf("Press '1' to turn ON the light\r\n");
     uartUsb.printf("Press 'S' to configure RTC\r\n");
+    uartUsb.printf("Press 't' to view time of RTC\r\n");
 }
 
 void matrixKeypadInit(){
@@ -286,4 +295,44 @@ char matrixKeypadUpdate(){
 			break;
 	}
 	return keyReleased;
+}
+
+int pushButtonUpdate(){
+    int lectura;
+    switch (pushButtonState) {
+        case PUSHBTN_SCANNING:
+            pushButtonLastRead = pushButton.read();
+            if(pushButtonLastRead == 1){
+                pushButtonState = PUSHBTN_DEBOUNCE;
+            }
+            else{
+                pushButtonState = PUSHBTN_SCANNING;
+            }            
+            break;
+        case PUSHBTN_DEBOUNCE:
+            if(accumulatedDebouncePushButtonTime >= DEBOUNCE_BUTTON_TIME_MS){
+                lectura = pushButton.read();
+                if(lectura == pushButtonLastRead){
+                    pushButtonState = PUSHBTN_HOLD_PRESSED;
+                    accumulatedDebouncePushButtonTime = 0;
+                }
+                else{
+                    pushButtonState = PUSHBTN_SCANNING;
+                }
+            }
+            accumulatedDebouncePushButtonTime += accumulatedDebouncePushButtonTime + TIME_INCREMENT_MS;
+            break;
+        case PUSHBTN_HOLD_PRESSED:
+            lectura = pushButton.read();
+            if(lectura != pushButtonLastRead){
+                pushButtonState = PUSHBTN_SCANNING;
+            }
+            else{
+                pushButtonState = PUSHBTN_HOLD_PRESSED;
+            }
+            break;
+        default:
+            break;
+    }
+    return pushButtonLastRead;
 }
